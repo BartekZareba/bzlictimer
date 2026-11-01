@@ -1,0 +1,35 @@
+version: '3'
+services:
+  nginx:
+    build: .
+    image: bzlictimer_${ENV}
+    container_name: bzlictimer-${ENV}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    restart: always
+    networks:
+      - proxy_traefik
+    labels:
+      - "traefik.enable=true"
+      
+      # Router HTTP - przekierowanie na HTTPS
+      - "traefik.http.routers.bzlictimer-${ENV}-http.rule=Host(`${HOST}`)"
+      - "traefik.http.routers.bzlictimer-${ENV}-http.entrypoints=web"
+      - "traefik.http.routers.bzlictimer-${ENV}-http.middlewares=redirect-to-https@file"
+
+      # Router HTTPS - właściwy routing z TLS
+      - "traefik.http.routers.bzlictimer-${ENV}.rule=Host(`${HOST}`)"
+      - "traefik.http.routers.bzlictimer-${ENV}.entrypoints=websecure"
+      - "traefik.http.routers.bzlictimer-${ENV}.tls=true"
+      - "traefik.http.routers.bzlictimer-${ENV}.tls.certresolver=le"
+      - "traefik.http.routers.bzlictimer-${ENV}.middlewares=global-chain@file"
+
+      # Serwis i port aplikacji
+      - "traefik.http.services.bzlictimer-${ENV}.loadbalancer.server.port=80"
+
+networks:
+  proxy_traefik:
+    external: true
